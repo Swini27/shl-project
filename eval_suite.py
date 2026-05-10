@@ -336,8 +336,9 @@ RECALL_TRACES = [
             "Please recommend up to 10.",
         ],
         "relevant": {
+            "OPQ Leadership Report",
+            "OPQ Manager Plus Report",
             "Global Skills Development Report",
-            "AI Skills",
         }
     },
     {
@@ -347,8 +348,9 @@ RECALL_TRACES = [
             "Actually, they specifically use Spring Framework.",
         ],
         "relevant": {
-            "Java (New)",
-            "Spring Framework (New)",
+            "Spring (New)",
+            "Java 8 (New)",
+            "Core Java (Advanced Level) (New)",
         }
     },
     {

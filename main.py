@@ -182,8 +182,12 @@ async def chat_endpoint(request: ChatRequest):
             end_of_conversation=False
         )
         
-    # 3. Retrieval & Ranking (READY_TO_RECOMMEND / REFINING)
-    elif state.user_intent in ["READY_TO_RECOMMEND", "REFINING", "CLARIFYING"]:
+    # 3. Clarifying — return the question only, no recommendations
+    elif state.user_intent == "CLARIFYING":
+        pass  # recs stays [], reply is already set from state.reply_to_user
+
+    # 4. Retrieval & Ranking (READY_TO_RECOMMEND / REFINING)
+    elif state.user_intent in ["READY_TO_RECOMMEND", "REFINING"]:
         results = rag_catalog.search(state, top_k=10)
         
         # Strict validation against the ingested catalog
