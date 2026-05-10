@@ -1,3 +1,12 @@
+---
+title: SHL Assessment Recommender
+emoji: 📊
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
 # SHL Assessment Recommender — System Documentation
 
 ## 1. Overview
