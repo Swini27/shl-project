@@ -260,7 +260,6 @@ shl_project/
 ├── main.py            # FastAPI app, schemas, routing logic
 ├── rag_pipeline.py    # ChromaDB indexing and vector search
 ├── catalog.json       # Ground-truth SHL test catalog
-├── catalog_helper.py  # Utility helpers for catalog operations
 ├── test_main.py       # Automated test suite (pytest)
 ├── requirements.txt   # Python dependencies
 ├── .env               # API key (not committed to version control)

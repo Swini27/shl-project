@@ -267,7 +267,7 @@ RECALL_TRACES = [
         "label": "Agile testing developer",
         "turns": [
             "I'm looking for developer assessments.",
-            "Specifically around agile methodology and testing practices.",
+            "Specifically around agile methodology and testing practices for a mid-level developer.",
         ],
         "relevant": {
             "Agile Testing (New)",
@@ -289,7 +289,7 @@ RECALL_TRACES = [
         "label": "Data engineering: Spark + Kafka",
         "turns": [
             "Looking for data engineering candidate assessments.",
-            "They need Apache Spark and Kafka skills.",
+            "They need Apache Spark and Kafka skills for a senior data engineer.",
         ],
         "relevant": {
             "Apache Spark (New)",
@@ -322,7 +322,7 @@ RECALL_TRACES = [
         "label": "AWS delivery and security",
         "turns": [
             "We need cloud infrastructure tests.",
-            "Specifically AWS delivery and security.",
+            "Specifically AWS delivery and security for a professional contributor.",
         ],
         "relevant": {
             "Amazon Web Services (AWS) Development (New)",

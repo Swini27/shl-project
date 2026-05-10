@@ -19,7 +19,8 @@ def _matches_filters(item: dict, state) -> bool:
     max_dur = getattr(state, "max_duration_minutes", None)
     if max_dur and max_dur > 0:
         dur = _parse_duration_minutes(item.get("duration_raw", ""))
-        if dur > 0 and dur > max_dur:
+        # If duration is unknown (0) or exceeds the max, filter it out
+        if dur == 0 or dur > max_dur:
             return False
     lang = getattr(state, "language_filter", None)
     if lang and lang not in item.get("languages", []):
@@ -196,6 +197,8 @@ class RAGCatalog:
         for eid in all_ids:
             if eid not in self.catalog_map:
                 continue
+            if not _matches_filters(self.catalog_map[eid], state):
+                continue
             hybrid = ALPHA * vec_scores.get(eid, 0.0) + (1 - ALPHA) * bm25_scores.get(eid, 0.0)
             doc_text = vec_texts.get(eid, "")
             if not doc_text:
@@ -214,4 +217,11 @@ class RAGCatalog:
                 c["score"] = float(s)
             candidates.sort(key=lambda x: x["score"], reverse=True)
 
-        return [self.catalog_map[c["id"]] for c in candidates[:top_k]]
+        final_results = []
+        for c in candidates[:top_k]:
+            # Cross-encoder logits (ms-marco): > -5.0 is generally relevant. Hybrid scores: > 0.1 is decent.
+            threshold = -5.0 if self.cross_encoder else 0.1
+            if c["score"] >= threshold:
+                final_results.append(self.catalog_map[c["id"]])
+                
+        return final_results
