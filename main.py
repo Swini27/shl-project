@@ -1,5 +1,6 @@
 import os
 import json
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -13,6 +14,7 @@ from rag_pipeline import RAGCatalog
 
 # Load environment variables
 load_dotenv()
+MAX_TURNS = 8  # Spec: conversation turn cap
 api_key = os.getenv("GEMINI_API") or os.getenv("GEMINI_API_KEY")
 logging.info(f"API Key loaded: {'YES (' + api_key[:8] + '...)' if api_key else 'NO - KEY MISSING'}")
 if api_key:
@@ -21,8 +23,22 @@ else:
     client = None
     print("WARNING: GEMINI_API not found in environment. Agent reasoning will fail.")
 
-app = FastAPI(title="SHL Assessment Recommender API")
 rag_catalog = RAGCatalog()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Pre-warm the ChromaDB index on startup so the first request is fast."""
+    count = rag_catalog.collection.count()
+    logging.info(f"Startup: ChromaDB index warm with {count} assessments.")
+    yield
+
+app = FastAPI(title="SHL Assessment Recommender API", lifespan=lifespan)
+
+@app.get("/")
+async def root():
+    """Redirect root to interactive API docs."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/docs")
 
 # --- Schemas ---
 
@@ -135,10 +151,20 @@ async def chat_endpoint(request: ChatRequest):
 
     print(f"DEBUG State: {state.user_intent} | Constraints: {state.job_role}, {state.technical_stack}")
 
-    # --- Gap 3 Fix: Graceful Degradation ---
-    # If the agent has already clarified >= 2 times, stop asking and return a broad shortlist.
+    # --- Turn management ---
     assistant_turns = sum(1 for m in request.messages if m.role == "assistant")
-    if state.user_intent == "CLARIFYING" and assistant_turns >= 2:
+
+    # Hard cap: force end_of_conversation at turn 8 (spec requirement)
+    if assistant_turns >= MAX_TURNS:
+        state.user_intent = "READY_TO_RECOMMEND"
+        state.is_fulfilled = True
+        state.reply_to_user = (
+            "We've reached the maximum conversation length. Here are the best SHL assessments "
+            "based on everything you've shared. Feel free to start a new conversation to refine further."
+        )
+
+    # Graceful degradation: after 2 clarifying turns, force recommendations
+    elif state.user_intent == "CLARIFYING" and assistant_turns >= 2:
         state.user_intent = "READY_TO_RECOMMEND"
         state.reply_to_user = (
             "Based on what you've shared so far, here are some SHL assessments that may be a good fit. "
@@ -163,10 +189,11 @@ async def chat_endpoint(request: ChatRequest):
         # Strict validation against the ingested catalog
         for r in results:
             if str(r.get("entity_id")) in rag_catalog.catalog_map:
+                url = r.get("link") or r.get("url") or "https://www.shl.com/products/product-catalog/"
                 recs.append(
                     Recommendation(
                         name=r.get("name", "Unknown"),
-                        url=r.get("link", r.get("url", "")),
+                        url=url,
                         test_type=r.get("keys", ["Unknown"])[0] if r.get("keys") else "Unknown"
                     )
                 )
