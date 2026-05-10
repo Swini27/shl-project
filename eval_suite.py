@@ -634,6 +634,52 @@ def run_behavior_probes(delay: float) -> Suite:
     else:
         suite.add(Result("Cumulative constraints", False, "T1 call failed"))
 
+    # ---- Probe 9: Strict Duration Filter Fallback --------------------------
+    print("\n[Probe 9] Impossible duration filter should yield 0 recs")
+    def _assert_zero_recs_fallback(data):
+        recs = data.get("recommendations", [])
+        if len(recs) != 0:
+            return False, f"Expected 0 recs, got {len(recs)}"
+        return True, "Got 0 recs"
+
+    run_probe(
+        "Impossible duration fallback",
+        [{"role": "user", "content": "I need a test for a Python engineer that takes under 1 minute to complete."}],
+        _assert_zero_recs_fallback
+    )
+
+    # ---- Probe 10: Niche test strict threshold ------------------------------
+    print("\n[Probe 10] Niche queries must not pad blindly to 10 results")
+    def _assert_few_recs(data):
+        recs = data.get("recommendations", [])
+        if not (1 <= len(recs) < 10):
+            return False, f"Expected 1-9 recs (not blindly 10), got {len(recs)}"
+        if "COBOL" not in recs[0]["name"].upper():
+            return False, f"Expected COBOL test as top match, got {recs[0]['name']}"
+        return True, f"Got {len(recs)} strict match(es)"
+
+    run_probe(
+        "Niche query: COBOL",
+        [{"role": "user", "content": "I am looking for an assessment to test COBOL Programming skills for a senior role."}],
+        _assert_few_recs
+    )
+
+    # ---- Probe 11: Strict Language Filter -----------------------------------
+    print("\n[Probe 11] Strict language filter for French tests")
+    def _assert_french_cashier(data):
+        recs = data.get("recommendations", [])
+        if len(recs) == 0:
+            return False, "Expected recs, got 0"
+        if "Cashier" not in recs[0]["name"]:
+            return False, f"Expected Cashier test, got {recs[0]['name']}"
+        return True, f"Got {len(recs)} French-compatible test(s)"
+
+    run_probe(
+        "French language filter",
+        [{"role": "user", "content": "I need an entry level cashier test available specifically in French."}],
+        _assert_french_cashier
+    )
+
     # ---- Summary ---
     s = suite.summary()
     print(f"\n  Behavior Probes: {s['passed']}/{s['total']} passed ({s['pass_rate']*100:.1f}%)")
